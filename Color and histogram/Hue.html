@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>JS Bin</title>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.7/p5.js"></script>
+    <script>
+        let img;
+        let pixels = {};
+        let d;
+
+        function preload() {
+            img = loadImage("https://raw.githubusercontent.com/scikit-image/scikit-image/master/skimage/data/astronaut.png");
+            pixels.v = createImage(256, 256);
+            pixels.s = createImage(256, 256);
+            pixels.h = createImage(256, 256);
+        }
+
+        function setup() {
+            createCanvas(512, 512);
+            img.resize(256, 256);
+
+            d = pixelDensity();
+
+            img.loadPixels();
+            pixels.v.loadPixels();
+            pixels.s.loadPixels();
+            pixels.h.loadPixels()
+
+            pixels.v = changePixelImage(img, pixels.v, true, false, false);
+            pixels.s = changePixelImage(img, pixels.s, false, true, false);
+            pixels.h = changePixelImage(img, pixels.h, false, false, true);
+
+            pixels.v.updatePixels();
+            pixels.s.updatePixels();
+            pixels.h.updatePixels();
+
+            image(pixels.v, 0, 256);
+            image(pixels.s, 256, 0);
+            image(pixels.h, 0, 0);
+            image(img, 256, 256);
+        }
+
+        function changePixelImage(sorceImg, destinationImg, setV, setS, setH) {
+            for (let x = 0; x < sorceImg.width; x++) {
+                for (let y = 0; y < sorceImg.height; y++) {
+                    for (let dx = 0; dx < d; dx++) {
+                        for (let dy = 0; dy < d; dy++) {
+                            let pos = 4 * ((y * d + dy) * sorceImg.width * d + (x * d + dx));
+
+                            const r = sorceImg.pixels[pos] / 255;
+                            const g = sorceImg.pixels[pos + 1] / 255;
+                            const b = sorceImg.pixels[pos + 2] / 255;
+
+                            const cmax = Math.max(r, g, b);
+                            const cmin = Math.min(r, g, b);
+
+                            const v = cmax;
+                            const l = (cmax + cmin) / 2;
+
+                            let s = 0;
+                            const c = cmax - cmin;
+
+                            //W przypadku modelu HSL wzór jest analogiczny (z takim samym wyjątkiem):
+                            //s=c/(1-Math.abs(2*l-1));
+
+                            if (cmax !== 0) {
+                                s = c / cmax;
+                            }
+
+                            let h = 0
+
+                            if (c === 0)
+                                h = 0;
+                            else if (v === r)
+                                h = ((g - b) / c) % 6;
+                            else if (v === g)
+                                h = ((b - r) / c) + 2;
+                            else /*v==b*/
+                                h = ((r - g) / c) + 4;
+
+                            h /= 6;
+
+                            if (h < 0) h += 1;
+
+                            const wspolrzednaX = (pos / 4) % 256; //indeks kolumny wewnątrz wiersza
+                            const wspolrzednaY = (pos / 4) / 256; //indeks wiersza
+
+                            if (setV)
+                                destinationImg.set(wspolrzednaX, wspolrzednaY, 255 * v);
+
+                            if (setS)
+                                destinationImg.set(wspolrzednaX, wspolrzednaY, 255 * s);
+
+                            if (setH)
+                                destinationImg.set(wspolrzednaX, wspolrzednaY, 255 * h);
+
+                        }
+                    }
+                }
+            }
+
+            return destinationImg;
+        }
+    </script>
+
+</head>
+
+<body>
+
+</body>
+
+</html>
